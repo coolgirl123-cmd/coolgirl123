@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Valentine.exe</title>
+  <style>
+    :root{
+      --bg:#0b1020;
+      --panel:#0f1731;
+      --text:#e7ecff;
+      --muted:#aab3d6;
+      --accent:#ff4d8d;
+      --accent2:#7c5cff;
+      --good:#3ddc97;
+      --bad:#ffcc66;
+      --shadow: 0 18px 60px rgba(0,0,0,.45);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      min-height:100svh;
+      display:grid;
+      place-items:center;
+      background:
+        radial-gradient(1200px 700px at 10% 10%, rgba(124,92,255,.25), transparent 60%),
+        radial-gradient(900px 600px at 90% 20%, rgba(255,77,141,.22), transparent 55%),
+        radial-gradient(800px 500px at 50% 110%, rgba(61,220,151,.12), transparent 60%),
+        var(--bg);
+      color:var(--text);
+      font-family: var(--sans);
+      overflow:hidden;
+    }
+
+    /* Floating hearts (subtle) */
+    .floaters{
+      position:fixed; inset:0; pointer-events:none; overflow:hidden;
+      filter: drop-shadow(0 8px 16px rgba(0,0,0,.35));
+      opacity:.55;
+    }
+    .heart{
+      position:absolute;
+      width:14px; height:14px;
+      transform: rotate(45deg);
+      background: rgba(255,77,141,.9);
+      border-radius: 3px;
+      animation: rise linear infinite;
+    }
+    .heart::before, .heart::after{
+      content:"";
+      position:absolute;
+      width:14px; height:14px;
+      background: inherit;
+      border-radius: 50%;
+    }
+    .heart::before{ left:-7px; top:0; }
+    .heart::after{ left:0; top:-7px; }
+    @keyframes rise{
+      from{ transform: translateY(110vh) rotate(45deg) scale(.9); opacity:0; }
+      10%{ opacity:.8; }
+      to{ transform: translateY(-20vh) rotate(45deg) scale(1.1); opacity:0; }
+    }
+
+    .wrap{
+      width:min(960px, 92vw);
+      display:grid;
+      gap:18px;
+      grid-template-columns: 1.15fr .85fr;
+      align-items:stretch;
+    }
+    @media (max-width: 860px){
+      .wrap{ grid-template-columns: 1fr; }
+    }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border:1px solid rgba(255,255,255,.12);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+      overflow:hidden;
+    }
+
+    /* Terminal panel */
+    .terminal{
+      display:flex;
+      flex-direction:column;
+    }
+    .term-top{
+      padding:14px 16px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      background: rgba(0,0,0,.25);
+      border-bottom:1px solid rgba(255,255,255,.10);
+      font-family: var(--mono);
+      color: var(--muted);
+      letter-spacing:.2px;
+    }
+    .dots{ display:flex; gap:8px; }
+    .dot{ width:10px; height:10px; border-radius:50%; background: rgba(255,255,255,.18); }
+    .dot:nth-child(1){ background:#ff5f57; }
+    .dot:nth-child(2){ background:#febc2e; }
+    .dot:nth-child(3){ background:#28c840; }
+
+    .term-body{
+      padding: 18px 18px 22px;
+      font-family: var(--mono);
+      font-size: 15px;
+      line-height: 1.55;
+      background:
+        radial-gradient(900px 500px at 30% 0%, rgba(124,92,255,.16), transparent 55%),
+        radial-gradient(900px 500px at 80% 10%, rgba(255,77,141,.12), transparent 55%),
+        rgba(15,23,49,.55);
+      min-height: 340px;
+    }
+    .prompt{ color: var(--muted); }
+    .cmd{ color: var(--text); }
+    .ok{ color: var(--good); }
+    .warn{ color: var(--bad); }
+    .pink{ color: var(--accent); }
+    .type{
+      display:inline-block;
+      border-right: 2px solid rgba(231,236,255,.55);
+      padding-right: 2px;
+      animation: blink 1s step-end infinite;
+      white-space: pre-wrap;
+    }
+    @keyframes blink{
+      50%{ border-right-color: transparent; }
+    }
+
+    .pillrow{
+      padding: 14px 16px 16px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      border-top:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.18);
+    }
+    .pill{
+      font-family: var(--mono);
+      font-size: 12.5px;
+      color: var(--muted);
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 999px;
+      padding: 8px 10px;
+      display:flex; align-items:center; gap:8px;
+    }
+    .pill b{ color: var(--text); font-weight:600; }
+
+    /* Choice panel */
+    .choice{
+      padding: 22px;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+      position:relative;
+    }
+    .headline{
+      font-size: 22px;
+      font-weight: 750;
+      letter-spacing: .2px;
+      margin:0;
+    }
+    .sub{
+      margin:0;
+      color: var(--muted);
+      line-height:1.5;
+    }
+    .btnrow{
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+      margin-top: 6px;
+    }
+    button{
+      appearance:none;
+      border:none;
+      cursor:pointer;
+      font-family: var(--mono);
+      padding: 12px 14px;
+      border-radius: 14px;
+      transition: transform .08s ease, filter .2s ease, background .2s ease;
+      box-shadow: 0 10px 25px rgba(0,0,0,.25);
+      font-size: 14px;
+      user-select:none;
+    }
+    button:active{ transform: translateY(1px) scale(.99); }
+    .yes{
+      background: linear-gradient(135deg, var(--accent), #ff7aa8);
+      color: #1a0b12;
+      font-weight: 700;
+    }
+    .no{
+      background: linear-gradient(135deg, rgba(255,255,255,.10), rgba(255,255,255,.06));
+      color: var(--text);
+      border:1px solid rgba(255,255,255,.14);
+      box-shadow: none;
+    }
+    .no:hover{ filter: brightness(1.05); }
+    .yes:hover{ filter: brightness(1.05); }
+
+    .toast{
+      display:none;
+      margin-top: 10px;
+      padding: 12px 12px;
+      border-radius: 14px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(15,23,49,.65);
+      color: var(--text);
+      font-family: var(--mono);
+      line-height:1.45;
+    }
+    .toast.show{ display:block; }
+    .small{
+      font-size: 12.5px;
+      color: var(--muted);
+      margin-top: auto;
+    }
+
+    /* Confetti hearts */
+    .confetti{
+      position:fixed; inset:0; pointer-events:none; overflow:hidden;
+      display:none;
+    }
+    .confetti.show{ display:block; }
+    .confetti .c{
+      position:absolute;
+      width:10px; height:10px;
+      transform: rotate(45deg);
+      border-radius: 2px;
+      opacity:.95;
+      animation: fall 1200ms ease-in forwards;
+    }
+    .confetti .c::before,.confetti .c::after{
+      content:"";
+      position:absolute;
+      width:10px; height:10px;
+      background: inherit;
+      border-radius:50%;
+    }
+    .confetti .c::before{ left:-5px; top:0; }
+    .confetti .c::after{ left:0; top:-5px; }
+    @keyframes fall{
+      0%{ transform: translateY(-10px) rotate(45deg) scale(.8); }
+      100%{ transform: translateY(110vh) rotate(45deg) scale(1.2); opacity:0; }
+    }
+
+    a.mute{
+      color: var(--muted);
+      text-decoration: none;
+      border-bottom: 1px dashed rgba(170,179,214,.35);
+    }
+    a.mute:hover{ color: var(--text); border-bottom-color: rgba(231,236,255,.6); }
+  </style>
+</head>
+<body>
+  <div class="floaters" aria-hidden="true" id="floaters"></div>
+  <div class="confetti" aria-hidden="true" id="confetti"></div>
+
+  <main class="wrap">
+    <section class="card terminal">
+      <div class="term-top">
+        <div class="dots" aria-hidden="true">
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+        </div>
+        <div>~/valentine/  •  <span class="pink">valentine.exe</span></div>
+      </div>
+
+      <div class="term-body">
+        <div><span class="prompt">bf@heartOS</span>:<span class="prompt">~/valentine</span>$ <span class="cmd">python3 ask.py</span></div>
+        <div class="ok">[INFO] loading feelings… ✓</div>
+        <div class="ok">[INFO] training model on: smiles, laughs, hugs, and you ✨</div>
+        <div class="ok">[INFO] cross-validation score: 1.000 (somehow)</div>
+        <div class="warn">[WARN] this output is statistically significant (p &lt; 0.05)</div>
+        <br/>
+        <div id="typed" class="type"></div>
+        <br/><br/>
+        <div><span class="prompt">bf@heartOS</span>:<span class="prompt">~/valentine</span>$ <span class="cmd" id="cursorLine">_</span></div>
+      </div>
+
+      <div class="pillrow">
+        <div class="pill">commit: <b>love</b> ✅</div>
+        <div class="pill">branch: <b>us</b> 🌿</div>
+        <div class="pill">status: <b>ready-to-merge</b> 💘</div>
+        <div class="pill">ETA: <b>now</b> ⏱️</div>
+      </div>
+    </section>
+
+    <aside class="card choice">
+      <h1 class="headline">Will you be my Valentine?</h1>
+      <p class="sub">Choose an option below to continue the program. No pressure… but also… 🥺</p>
+
+      <div class="btnrow">
+        <button class="yes" id="yesBtn">YES ✅ (merge)</button>
+        <button class="no" id="noBtn">NO 🙃 (throw error)</button>
+      </div>
+
+      <div class="toast" id="toast"></div>
+
+      <div class="small">
+        Tip: open this file in any browser. Want to personalize it? Press <b>Ctrl/Cmd + F</b> and replace
+        <span class="pink">"my favorite human"</span> with his name.
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    // Floating background hearts
+    const floaters = document.getElementById('floaters');
+    const heartCount = 18;
+    for (let i=0;i<heartCount;i++){
+      const h = document.createElement('div');
+      h.className = 'heart';
+      const left = Math.random()*100;
+      const dur = 6 + Math.random()*8;
+      const delay = Math.random()*6;
+      const size = 10 + Math.random()*12;
+      const opacity = 0.35 + Math.random()*0.45;
+      h.style.left = left + 'vw';
+      h.style.animationDuration = dur + 's';
+      h.style.animationDelay = (-delay) + 's';
+      h.style.width = size + 'px';
+      h.style.height = size + 'px';
+      h.style.opacity = opacity;
+      floaters.appendChild(h);
+    }
+
+    // Typed terminal message
+    const typedEl = document.getElementById('typed');
+    const message =
+`print("Dear my favorite human,")
+print("I checked the logs: you make my days 10x better.")
+print("I ran the model: probability you’re my Valentine = 100%.")
+print("So… will you be my Valentine? ❤️")`;
+    let idx = 0;
+
+    function typeTick(){
+      typedEl.textContent = message.slice(0, idx);
+      idx++;
+      if (idx <= message.length){
+        requestAnimationFrame(() => setTimeout(typeTick, 18));
+      }
+    }
+    typeTick();
+
+    // Buttons logic
+    const toast = document.getElementById('toast');
+    const yesBtn = document.getElementById('yesBtn');
+    const noBtn = document.getElementById('noBtn');
+
+    const noMessages = [
+      "ERROR 418: I'm a teapot… and also I refuse to accept this reality ☕💔",
+      "Unhandled exception: MissingValentineError — retrying…",
+      "404: 'No' not found. Did you mean 'Yes'?",
+      "Segmentation fault (core dumped). Please reboot and choose YES 😌"
+    ];
+    let noClicks = 0;
+
+    function showToast(text){
+      toast.textContent = text;
+      toast.classList.add('show');
+    }
+
+    function confettiHearts(){
+      const confetti = document.getElementById('confetti');
+      confetti.innerHTML = '';
+      confetti.classList.add('show');
+
+      const colors = ['#ff4d8d','#7c5cff','#3ddc97','#ffcc66','#e7ecff'];
+      for (let i=0;i<70;i++){
+        const c = document.createElement('div');
+        c.className = 'c';
+        c.style.left = (Math.random()*100) + 'vw';
+        c.style.top = (-10 - Math.random()*20) + 'px';
+        c.style.background = colors[Math.floor(Math.random()*colors.length)];
+        c.style.animationDuration = (900 + Math.random()*900) + 'ms';
+        c.style.transform = `rotate(45deg) scale(${0.7 + Math.random()*1.1})`;
+        confetti.appendChild(c);
+        c.addEventListener('animationend', () => c.remove());
+      }
+      setTimeout(()=> confetti.classList.remove('show'), 1600);
+    }
+
+    yesBtn.addEventListener('click', () => {
+      confettiHearts();
+      showToast("✅ MERGE SUCCESSFUL!  \nStatus: officially your Valentine 💘\n\nNow run: `date_night --schedule asap`");
+      yesBtn.textContent = "YES ✅ (merged)";
+      yesBtn.disabled = true;
+      noBtn.disabled = true;
+      noBtn.style.opacity = 0.55;
+      noBtn.style.cursor = "not-allowed";
+    });
+
+    noBtn.addEventListener('click', () => {
+      noClicks++;
+      const pick = noMessages[(noClicks-1) % noMessages.length];
+      showToast(pick + (noClicks >= 3 ? "  \n\nHint: try the other button 😇" : ""));
+      // playful evasive button after a few clicks
+      if (noClicks >= 2){
+        const dx = (Math.random()*140) - 70;
+        const dy = (Math.random()*100) - 50;
+        noBtn.style.transform = `translate(${dx}px, ${dy}px)`;
+      }
+    });
+  </script>
+</body>
+</html>
